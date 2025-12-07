@@ -53,10 +53,6 @@ fi
 if [ "$CLEAN" = true ]; then
     echo "🧹 Очистка volumes и образов..."
     $DOCKER_COMPOSE down -v
-    if [ "$REBUILD" = true ]; then
-        echo "🗑️  Удаление образов..."
-        $DOCKER_COMPOSE build --no-cache
-    fi
 fi
 
 # Пересборка (если нужно)
@@ -72,9 +68,17 @@ fi
 # Запуск контейнеров
 echo "🚀 Запуск контейнеров..."
 if [ -z "$SERVICE" ]; then
-    $DOCKER_COMPOSE up -d
+    if [ "$REBUILD" = true ]; then
+        $DOCKER_COMPOSE up -d --build
+    else
+        $DOCKER_COMPOSE up -d
+    fi
 else
-    $DOCKER_COMPOSE up -d --build "$SERVICE"
+    if [ "$REBUILD" = true ]; then
+        $DOCKER_COMPOSE up -d --build "$SERVICE"
+    else
+        $DOCKER_COMPOSE up -d "$SERVICE"
+    fi
 fi
 
 # Ожидание готовности
