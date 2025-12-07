@@ -48,9 +48,18 @@ services:
       - ./airflow/logs:/opt/airflow/logs
     command: >
       bash -c "
-      airflow db init || true &&
-      airflow users delete admin || true &&
-      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@contentmaker.com --password admin --use-random-password=false || true
+      set -e
+      airflow db init || true
+      airflow users delete admin || true
+      airflow users create \
+        --username admin \
+        --firstname Admin \
+        --lastname User \
+        --role Admin \
+        --email admin@contentmaker.com \
+        --password admin \
+        --use-random-password=false || true
+      exit 0
       "
     networks:
       - content_maker_network
@@ -65,6 +74,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+        restart: "no"
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
@@ -101,6 +111,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+        restart: "no"
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
@@ -128,6 +139,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+        restart: "no"
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker

@@ -86,7 +86,22 @@ done
 # 7. Инициализация Airflow
 echo ""
 echo "🔧 Шаг 7: Инициализация Airflow..."
-sleep 5
+sleep 10
+# Ждем завершения airflow-init
+echo "   Ожидание завершения airflow-init..."
+for i in {1..60}; do
+    if $DOCKER_COMPOSE ps airflow-init | grep -q "Exited"; then
+        echo "   ✅ airflow-init завершен"
+        break
+    fi
+    if [ $i -eq 60 ]; then
+        echo "   ⚠️  airflow-init не завершился, продолжаем..."
+    fi
+    sleep 1
+done
+
+# Дополнительная инициализация если нужно
+echo "   Проверка и создание пользователя Airflow..."
 $DOCKER_COMPOSE exec -T airflow-webserver airflow db init || true
 $DOCKER_COMPOSE exec -T airflow-webserver airflow users delete admin || true
 $DOCKER_COMPOSE exec -T airflow-webserver airflow users create \
