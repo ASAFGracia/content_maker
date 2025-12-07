@@ -60,7 +60,7 @@ sleep 15
 # Проверка готовности PostgreSQL
 echo "   Проверка PostgreSQL..."
 for i in {1..30}; do
-    if docker compose exec -T postgres pg_isready -U content_admin > /dev/null 2>&1; then
+    if $DOCKER_COMPOSE exec -T postgres pg_isready -U content_admin > /dev/null 2>&1; then
         echo "   ✅ PostgreSQL готов"
         break
     fi
@@ -74,7 +74,7 @@ done
 # Проверка готовности Redis
 echo "   Проверка Redis..."
 for i in {1..30}; do
-    if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then
+    if $DOCKER_COMPOSE exec -T redis redis-cli ping > /dev/null 2>&1; then
         echo "   ✅ Redis готов"
         break
     fi

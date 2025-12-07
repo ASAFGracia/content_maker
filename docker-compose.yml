@@ -50,7 +50,7 @@ services:
       bash -c "
       airflow db init || true &&
       airflow users delete admin || true &&
-      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@contentmaker.com --password admin --use-random-password=false
+      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@contentmaker.com --password admin --use-random-password=false || true
       "
     networks:
       - content_maker_network
