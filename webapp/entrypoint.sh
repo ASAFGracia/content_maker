@@ -17,7 +17,9 @@ echo "Creating migrations..."
 python manage.py makemigrations --noinput || true
 
 echo "Running migrations..."
-python manage.py migrate --noinput --fake-initial || python manage.py migrate --noinput
+# Используем --fake-initial для пропуска уже существующих таблиц
+python manage.py migrate --noinput --fake-initial 2>/dev/null || \
+python manage.py migrate --noinput || true
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput || true
