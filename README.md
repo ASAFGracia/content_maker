@@ -60,7 +60,7 @@ docker-compose exec airflow-webserver airflow users create \
 - **Web App (CRM + Видео редактор)**: http://localhost:8000
 - **Airflow**: http://localhost:8080 (admin/admin)
 - **Superset**: http://localhost:8088 (admin/admin)
-- **PostgreSQL**: localhost:5432
+- **PostgreSQL**: localhost:5433
 
 ### Доступ через интернет
 
@@ -81,7 +81,7 @@ ngrok http 8088  # Superset
 
 ### PostgreSQL
 - **Host**: localhost
-- **Port**: 5432
+- **Port**: 5433 (внешний порт для подключения с хоста)
 - **Database**: content_maker
 - **Username**: content_admin
 - **Password**: ContentMaker2024!Secure (измените в `.env`)

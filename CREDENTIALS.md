@@ -3,14 +3,19 @@
 ## PostgreSQL
 
 **Host:** localhost (или postgres в Docker сети)  
-**Port:** 5432  
+**Port:** 5433 (внешний порт, внутри контейнера 5432)  
 **Database:** content_maker  
 **Username:** content_admin  
 **Password:** ContentMaker2024!Secure
 
-### Строка подключения:
+### Строка подключения для внешнего подключения:
 ```
-postgresql://content_admin:ContentMaker2024!Secure@localhost:5432/content_maker
+postgresql://content_admin:ContentMaker2024!Secure@localhost:5433/content_maker
+```
+
+### Строка подключения внутри Docker сети:
+```
+postgresql://content_admin:ContentMaker2024!Secure@postgres:5432/content_maker
 ```
 
 ## Airflow
