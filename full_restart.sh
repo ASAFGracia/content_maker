@@ -111,8 +111,7 @@ $DOCKER_COMPOSE exec -T airflow-webserver airflow users create \
     --lastname User \
     --role Admin \
     --email admin@contentmaker.com \
-    --password admin \
-    --use-random-password=false || true
+    --password admin || true
 
 # 8. Инициализация Django
 echo ""

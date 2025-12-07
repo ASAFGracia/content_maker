@@ -17,9 +17,14 @@ echo "Creating migrations..."
 python manage.py makemigrations --noinput || true
 
 echo "Running migrations..."
-# Используем --fake-initial для пропуска уже существующих таблиц
-python manage.py migrate --noinput --fake-initial 2>/dev/null || \
-python manage.py migrate --noinput || true
+# Сначала пытаемся применить миграции с --fake-initial
+if ! python manage.py migrate --noinput --fake-initial 2>/dev/null; then
+  # Если миграция падает из-за существующей колонки, помечаем проблемную миграцию как выполненную
+  echo "Migration failed, trying to fake problematic migrations..."
+  python manage.py migrate video_editor 0002 --fake --noinput 2>/dev/null || true
+  # Затем применяем остальные миграции
+  python manage.py migrate --noinput || true
+fi
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput || true
