@@ -68,17 +68,9 @@ fi
 # Запуск контейнеров
 echo "🚀 Запуск контейнеров..."
 if [ -z "$SERVICE" ]; then
-    if [ "$REBUILD" = true ]; then
-        $DOCKER_COMPOSE up -d --build
-    else
-        $DOCKER_COMPOSE up -d
-    fi
+    $DOCKER_COMPOSE up -d
 else
-    if [ "$REBUILD" = true ]; then
-        $DOCKER_COMPOSE up -d --build "$SERVICE"
-    else
-        $DOCKER_COMPOSE up -d "$SERVICE"
-    fi
+    $DOCKER_COMPOSE up -d "$SERVICE"
 fi
 
 # Ожидание готовности
@@ -119,4 +111,3 @@ echo "   - Airflow:      http://localhost:8080 (admin/admin)"
 echo "   - Superset:     http://localhost:8088 (admin/admin)"
 echo ""
 echo "📖 Просмотр логов: $DOCKER_COMPOSE logs -f [service_name]"
-
