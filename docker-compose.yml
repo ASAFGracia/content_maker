@@ -65,7 +65,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
-        restart: "no"
+        restart: false
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
@@ -102,7 +102,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
-        restart: "no"
+        restart: false
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
@@ -130,7 +130,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
-        restart: "no"
+        restart: false
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
