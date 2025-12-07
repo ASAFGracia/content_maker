@@ -1,0 +1,229 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: content_maker_postgres
+    environment:
+      POSTGRES_DB: content_maker
+      POSTGRES_USER: content_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ContentMaker2024!Secure}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - content_maker_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U content_admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: content_maker_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - content_maker_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-init:
+    image: apache/airflow:2.8.0
+    container_name: content_maker_airflow_init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+    command: >
+      bash -c "
+      airflow db init &&
+      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@contentmaker.com --password admin --use-random-password=false || true
+      "
+    networks:
+      - content_maker_network
+
+  airflow-webserver:
+    image: apache/airflow:2.8.0
+    container_name: content_maker_airflow_webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=true
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./airflow/config:/opt/airflow/config
+    ports:
+      - "8080:8080"
+    command: webserver
+    networks:
+      - content_maker_network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.0
+    container_name: content_maker_airflow_scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./airflow/config:/opt/airflow/config
+    command: scheduler
+    networks:
+      - content_maker_network
+
+  airflow-worker:
+    image: apache/airflow:2.8.0
+    container_name: content_maker_airflow_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./airflow/config:/opt/airflow/config
+      - ./media:/opt/airflow/media
+    command: celery worker
+    networks:
+      - content_maker_network
+
+  superset:
+    image: apache/superset:latest
+    container_name: content_maker_superset
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-your-super-secret-key-change-in-production}
+      SUPERSET_CONFIG_PATH: /app/superset_config.py
+    volumes:
+      - ./superset:/app/superset
+      - superset_data:/app/superset_home
+    ports:
+      - "8088:8088"
+    command: >
+      sh -c "
+      superset db upgrade &&
+      superset fab create-admin --username admin --firstname Admin --lastname User --email admin@contentmaker.com --password admin &&
+      superset init &&
+      superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger
+      "
+    networks:
+      - content_maker_network
+
+  webapp:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    container_name: content_maker_webapp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${WEBAPP_SECRET_KEY:-your-secret-key-change-in-production}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID:-}
+      - YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET:-}
+      - YOUTUBE_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
+      - DB_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ContentMaker2024!Secure}
+    volumes:
+      - ./media:/app/media
+      - ./webapp:/app
+    ports:
+      - "8000:8000"
+    networks:
+      - content_maker_network
+    command: python manage.py runserver 0.0.0.0:8000
+
+  celery-worker:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    container_name: content_maker_celery_worker
+    depends_on:
+      - postgres
+      - redis
+      - webapp
+    environment:
+      - DATABASE_URL=postgresql://content_admin:${POSTGRES_PASSWORD:-ContentMaker2024!Secure}@postgres:5432/content_maker
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${WEBAPP_SECRET_KEY:-your-secret-key-change-in-production}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DB_HOST=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ContentMaker2024!Secure}
+    volumes:
+      - ./media:/app/media
+      - ./webapp:/app
+    networks:
+      - content_maker_network
+    command: celery -A contentmaker worker --loglevel=info
+
+volumes:
+  postgres_data:
+  superset_data:
+
+networks:
+  content_maker_network:
+    driver: bridge
+

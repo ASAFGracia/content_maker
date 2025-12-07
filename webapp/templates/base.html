@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Content Maker{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="dark-theme">
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">Content Maker</div>
+            <div class="nav-links">
+                <a href="/">Главная</a>
+                <a href="/api/crm/projects/">Проекты</a>
+                <a href="/api/crm/tasks/">Задачи</a>
+                <a href="/api/crm/meetings/">Встречи</a>
+                <a href="/api/video/videos/">Видео</a>
+                <a href="/api/templates/">Шаблоны</a>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+        </nav>
+
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script src="/static/js/main.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+
