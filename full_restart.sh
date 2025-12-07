@@ -6,7 +6,8 @@
 set -e
 
 echo "🔄 ПОЛНЫЙ ПЕРЕЗАПУСК Content Maker..."
-echo "⚠️  ВНИМАНИЕ: Это удалит все данные (volumes, базы данных, образы)"
+echo "⚠️  ВНИМАНИЕ: Это удалит все данные (volumes, базы данных)"
+echo "ℹ️  Образы Docker будут пересобраны, но базовые образы не будут скачаны заново"
 echo ""
 read -p "Продолжить? (yes/no): " confirm
 
@@ -27,34 +28,30 @@ echo ""
 echo "🛑 Шаг 1: Остановка всех контейнеров..."
 $DOCKER_COMPOSE down -v --remove-orphans
 
-# 2. Удаление образов
+# 2. Очистка volumes проекта
 echo ""
-echo "🗑️  Шаг 2: Удаление образов..."
-$DOCKER_COMPOSE down --rmi all --volumes --remove-orphans 2>/dev/null || true
+echo "🧹 Шаг 2: Очистка volumes проекта..."
+# Удаляем только volumes проекта, не трогая образы
+docker volume ls -q | grep -E "content_maker|contentmaker" | xargs -r docker volume rm 2>/dev/null || true
 
-# 3. Очистка volumes
+# 3. Очистка неиспользуемых сетей (только для проекта)
 echo ""
-echo "🧹 Шаг 3: Очистка volumes..."
-docker volume prune -f 2>/dev/null || true
+echo "🌐 Шаг 3: Очистка сетей проекта..."
+docker network ls -q --filter name=content_maker | xargs -r docker network rm 2>/dev/null || true
 
-# 4. Очистка сети (если нужно)
+# 4. Пересборка образов (без скачивания новых версий)
 echo ""
-echo "🌐 Шаг 4: Очистка сетей..."
-docker network prune -f 2>/dev/null || true
+echo "🔨 Шаг 4: Пересборка образов (используя существующие базовые образы)..."
+$DOCKER_COMPOSE build --no-cache
 
-# 5. Пересборка образов
+# 5. Запуск сервисов
 echo ""
-echo "🔨 Шаг 5: Пересборка образов с нуля..."
-$DOCKER_COMPOSE build --no-cache --pull
-
-# 6. Запуск сервисов
-echo ""
-echo "🚀 Шаг 6: Запуск всех сервисов..."
+echo "🚀 Шаг 5: Запуск всех сервисов..."
 $DOCKER_COMPOSE up -d
 
-# 7. Ожидание готовности базовых сервисов
+# 6. Ожидание готовности базовых сервисов
 echo ""
-echo "⏳ Шаг 7: Ожидание готовности PostgreSQL и Redis..."
+echo "⏳ Шаг 6: Ожидание готовности PostgreSQL и Redis..."
 sleep 15
 
 # Проверка готовности PostgreSQL
@@ -85,9 +82,9 @@ for i in {1..30}; do
     sleep 1
 done
 
-# 8. Инициализация Airflow
+# 7. Инициализация Airflow
 echo ""
-echo "🔧 Шаг 8: Инициализация Airflow..."
+echo "🔧 Шаг 7: Инициализация Airflow..."
 sleep 5
 $DOCKER_COMPOSE exec -T airflow-webserver airflow db init || true
 $DOCKER_COMPOSE exec -T airflow-webserver airflow users delete admin || true
@@ -100,18 +97,18 @@ $DOCKER_COMPOSE exec -T airflow-webserver airflow users create \
     --password admin \
     --use-random-password=false || true
 
-# 9. Инициализация Django
+# 8. Инициализация Django
 echo ""
-echo "🔧 Шаг 9: Инициализация Django..."
+echo "🔧 Шаг 8: Инициализация Django..."
 sleep 5
 $DOCKER_COMPOSE exec -T webapp python manage.py makemigrations || true
 $DOCKER_COMPOSE exec -T webapp python manage.py migrate --fake-initial || \
     $DOCKER_COMPOSE exec -T webapp python manage.py migrate || true
 $DOCKER_COMPOSE exec -T webapp python manage.py init_templates || true
 
-# 10. Инициализация Superset
+# 9. Инициализация Superset
 echo ""
-echo "🔧 Шаг 10: Инициализация Superset..."
+echo "🔧 Шаг 9: Инициализация Superset..."
 sleep 5
 $DOCKER_COMPOSE exec -T superset pip install psycopg2-binary || true
 $DOCKER_COMPOSE exec -T superset superset db upgrade || true
@@ -124,15 +121,15 @@ $DOCKER_COMPOSE exec -T superset superset fab create-admin \
     --password admin || true
 $DOCKER_COMPOSE exec -T superset superset init || true
 
-# 11. Проверка статуса
+# 10. Проверка статуса
 echo ""
-echo "📊 Шаг 11: Проверка статуса сервисов..."
+echo "📊 Шаг 10: Проверка статуса сервисов..."
 sleep 5
 $DOCKER_COMPOSE ps
 
-# 12. Финальная проверка
+# 11. Финальная проверка
 echo ""
-echo "🔍 Шаг 12: Финальная проверка доступности..."
+echo "🔍 Шаг 11: Финальная проверка доступности..."
 sleep 5
 
 # Проверка Web App
