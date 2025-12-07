@@ -2,7 +2,7 @@ from celery import shared_task
 from django.conf import settings
 import os
 from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip, ImageClip
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from gtts import gTTS
 from openai import OpenAI
 from .models import Video, VideoEdit, VideoTextTrack, VideoAudioTrack, YouTubeUpload
@@ -119,10 +119,10 @@ def apply_edit(clip, edit):
 @shared_task
 def translate_text(text):
     """Перевод текста с английского на русский"""
-    translator = Translator()
     try:
-        result = translator.translate(text, src='en', dest='ru')
-        return result.text
+        translator = GoogleTranslator(source='en', target='ru')
+        result = translator.translate(text)
+        return result
     except Exception as e:
         print(f"Translation error: {e}")
         return text
