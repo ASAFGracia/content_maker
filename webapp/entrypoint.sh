@@ -13,6 +13,9 @@ while ! nc -z redis 6379; do
 done
 echo "Redis started"
 
+echo "Creating migrations..."
+python manage.py makemigrations --noinput || true
+
 echo "Running migrations..."
 python manage.py migrate --noinput
 
