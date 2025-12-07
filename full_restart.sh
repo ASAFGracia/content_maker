@@ -31,8 +31,9 @@ $DOCKER_COMPOSE down -v --remove-orphans
 # 2. Очистка volumes проекта
 echo ""
 echo "🧹 Шаг 2: Очистка volumes проекта..."
-# Удаляем только volumes проекта, не трогая образы
-docker volume ls -q | grep -E "content_maker|contentmaker" | xargs -r docker volume rm 2>/dev/null || true
+# Volumes уже удалены через down -v, но убедимся что они удалены
+# Проверяем и удаляем volumes проекта если они остались
+docker volume ls -q 2>/dev/null | grep -E "content_maker|contentmaker" | xargs -r docker volume rm 2>/dev/null || true
 
 # 3. Очистка неиспользуемых сетей (только для проекта)
 echo ""
